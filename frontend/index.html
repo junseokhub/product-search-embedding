@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>샷핑 검색</title>
+  <style>
+    body { font-family: sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+    input { width: 100%; padding: 8px; margin: 4px 0 12px; border: 1px solid #ccc; }
+    button { padding: 10px 24px; background: #333; color: #fff; border: none; cursor: pointer; }
+    .card { border: 1px solid #eee; padding: 12px; margin: 8px 0; display: flex; gap: 12px; }
+    .card img { width: 80px; height: 80px; object-fit: cover; }
+    .info { flex: 1; }
+    .price { font-weight: bold; }
+    .agg { background: #f5f5f5; padding: 12px; margin: 12px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h2>샷핑 검색</h2>
+  <label>검색어</label>
+  <input id="query" placeholder="상품명 입력" />
+  <label>이미지 URL</label>
+  <input id="image_url" placeholder="이미지 URL 입력" />
+  <label>사이트</label>
+  <input id="site" placeholder="예: cjmall" />
+  <label>일자</label>
+  <input id="broadcast_date" type="date" />
+  <button onclick="doSearch()">검색</button>
+
+  <div id="agg"></div>
+  <div id="results"></div>
+
+<script>
+  async function doSearch() {
+    const params = new URLSearchParams();
+    const q = document.getElementById('query').value.trim();
+    const img = document.getElementById('image_url').value.trim();
+    const site = document.getElementById('site').value.trim();
+    const date = document.getElementById('broadcast_date').value;
+
+    if (!q && !img) return alert('검색어 또는 이미지 URL을 입력하세요.');
+    if (q) params.append('query', q);
+    if (img) params.append('image_url', img);
+    if (site) params.append('site', site);
+    if (date) params.append('broadcast_date', date);
+
+    const res = await fetch(`/api/search?${params}`);
+    const data = await res.json();
+    const prices = data.results.map(item => item.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const resultText = `총 ${data.results.length}건 | 최소 ${minPrice.toLocaleString()}원 | 최고 ${maxPrice.toLocaleString()}원`;
+    document.getElementById('agg').innerHTML = `
+    <div class="agg">
+         ${resultText}
+    </div>`;
+
+    document.getElementById('results').innerHTML = data.results.map(p => `
+      <div class="card">
+        <img src="${p.image_url}" onerror="this.style.display='none'" />
+        <div class="info">
+          <div>${p.product_name}</div>
+          <div class="price">${p.price.toLocaleString()}원</div>
+          <div style="color:#888;font-size:13px">${p.site} | ${p.broadcast_date} ${p.broadcast_time || ''}</div>
+        </div>
+      </div>`).join('');
+  }
+</script>
+</body>
+</html>

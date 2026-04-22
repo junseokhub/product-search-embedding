@@ -68,7 +68,18 @@ services:
       - test-network
     volumes:
       - ./backend/data:/app/data
-      -
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    networks:
+      - test-network
+    depends_on:
+      - backend
+
 networks:
   test-network:
     driver: bridge
