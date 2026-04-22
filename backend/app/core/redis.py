@@ -1,11 +1,9 @@
 import json
-import logging
+from loguru import logger
 
 import redis
 
 from app.config import settings
-
-log = logging.getLogger(__name__)
 
 def redis_client() -> redis.Redis:
     return redis.from_url(settings.REDIS_URL, decode_responses=True)
@@ -18,7 +16,7 @@ def get_cache(key: str) -> dict | None:
             return json.loads(value)
         return None
     except Exception as e:
-        log.warning(f"캐시 조회 실패: {e}")
+        logger.warning(f"캐시 조회 실패: {e}")
         return None
 
 
@@ -28,4 +26,4 @@ def set_cache(key: str, value: dict) -> None:
         client = redis_client()
         client.setex(key, settings.CACHE_TTL, json.dumps(value, ensure_ascii=False))
     except Exception as e:
-        log.warning(f"캐시 저장 실패: {e}")
+        logger.warning(f"캐시 저장 실패: {e}")

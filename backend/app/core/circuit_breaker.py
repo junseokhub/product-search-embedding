@@ -1,9 +1,7 @@
-import logging
 import time
 
 from app.config import settings
-
-log = logging.getLogger(__name__)
+from loguru import logger
 
 class CircuitBreaker:
     """
@@ -18,7 +16,7 @@ class CircuitBreaker:
         """ES 에러 발생 시 OPEN 상태로 전환"""
         self.is_open = True
         self.opened_at = time.time()
-        log.warning("Circuit Breaker OPEN")
+        logger.warning("Circuit Breaker OPEN")
 
     def check(self) -> bool:
         """
@@ -32,7 +30,7 @@ class CircuitBreaker:
         if elapsed >= settings.CB_OPEN_DURATION:
             self.is_open = False
             self.opened_at = None
-            log.info("Circuit Breaker CLOSED")
+            logger.info("Circuit Breaker CLOSED")
             return False
 
         return True
