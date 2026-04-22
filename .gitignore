@@ -13,4 +13,4 @@ embeddings/
 
 .DS_Store
 
-data/*.csv
+backend/data/*.csv
