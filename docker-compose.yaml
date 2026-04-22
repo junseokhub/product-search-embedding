@@ -1,0 +1,78 @@
+services:
+  elasticsearch:
+    build:
+      context: ./elastic-plugin
+      dockerfile: Dockerfile
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    networks:
+      - test-network
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - test-network
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  indexing:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "scripts/indexing.py"]
+    env_file:
+      - ./backend/.env
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ./backend/data:/app/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      indexing:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+    volumes:
+      - ./backend/data:/app/data
+      -
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  es-data:
+  redis-data:

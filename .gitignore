@@ -5,9 +5,6 @@ __pycache__/
 backend/.env
 *.log
 
-*.npy
-embeddings/
-
 .idea/
 .vscode/
 
