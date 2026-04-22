@@ -1,17 +1,17 @@
 import json
 from loguru import logger
 
-import redis
+import redis.asyncio as aioredis
 
 from app.config import settings
 
-def redis_client() -> redis.Redis:
-    return redis.from_url(settings.REDIS_URL, decode_responses=True)
+def redis_client() -> aioredis.Redis:
+    return aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
-def get_cache(key: str) -> dict | None:
+async def get_cache(key: str) -> dict | None:
     try:
         client = redis_client()
-        value = client.get(key)
+        value = await client.get(key)
         if value:
             return json.loads(value)
         return None
@@ -19,11 +19,10 @@ def get_cache(key: str) -> dict | None:
         logger.warning(f"캐시 조회 실패: {e}")
         return None
 
-
-def set_cache(key: str, value: dict) -> None:
+async def set_cache(key: str, value: dict) -> None:
     """TTL 일단 60초 적용"""
     try:
         client = redis_client()
-        client.setex(key, settings.CACHE_TTL, json.dumps(value, ensure_ascii=False))
+        await client.setex(key, settings.CACHE_TTL, json.dumps(value, ensure_ascii=False))
     except Exception as e:
         logger.warning(f"캐시 저장 실패: {e}")

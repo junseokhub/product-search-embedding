@@ -22,7 +22,7 @@ async def search(
     start_time = time.time()
     cache_key = make_cache_key(query, image_url, site, broadcast_date)
 
-    cached = get_cache(cache_key)
+    cached = await get_cache(cache_key)
     if cached:
         print(f"[캐시 응답] 소요시간: {time.time() - start_time:.3f}s")
         return SearchResponse(**cached)
@@ -32,14 +32,14 @@ async def search(
         return SearchResponse(total=0, results=[], aggregations=Aggregations())
 
     try:
-        result = search_products(query, image_url, site, broadcast_date)
-        set_cache(cache_key, result.model_dump())
+        result = await search_products(query, image_url, site, broadcast_date)
+        await set_cache(cache_key, result.model_dump())
         print(f"[검색 완료] 소요시간: {time.time() - start_time:.3f}s")
         return result
     except Exception as e:
         logger.error(f"ES 검색 실패: {e}")
         circuit_breaker.record_failure()
-        cached = get_cache(cache_key)
+        cached = await get_cache(cache_key)
         if cached:
             print(f"[ES 장애 - 캐시 응답] 소요시간: {time.time() - start_time:.3f}s")
             return SearchResponse(**cached)

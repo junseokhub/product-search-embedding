@@ -1,3 +1,4 @@
+import asyncio
 from app.core.elasticsearch import elastic_search_client
 from app.core.es_query import (
     build_filters,
@@ -7,10 +8,9 @@ from app.core.es_query import (
     build_aggregations
 )
 from app.core.es_mapping import INDEX_NAME
-from app.embedding.clip import CLIPEmbedding
+from app.embedding.clip import embedding
 from app.schemas.search import SearchResponse, ProductResult, Aggregations
 
-embedder = CLIPEmbedding()
 
 def _parse_results(hits: list) -> list[ProductResult]:
     """ES 검색 결과를 ProductResult 리스트로 변환"""
@@ -28,6 +28,7 @@ def _parse_results(hits: list) -> list[ProductResult]:
         ))
     return results
 
+
 def _parse_aggregations(aggs: dict) -> Aggregations:
     """ES 집계 결과 Aggregations로 변환"""
     site_counts = {
@@ -40,27 +41,31 @@ def _parse_aggregations(aggs: dict) -> Aggregations:
         site_counts=site_counts
     )
 
-def search_products(query: str | None, image_url: str | None, site: str | None, broadcast_date: str | None) -> SearchResponse:
+
+async def search_products(query: str | None, image_url: str | None, site: str | None, broadcast_date: str | None) -> SearchResponse:
     """검색 타입에 따라 텍스트,이미지,hybrid 검색"""
     es = elastic_search_client()
     filters = build_filters(site, broadcast_date)
+    loop = asyncio.get_running_loop()
 
     if query and image_url:
-        text_vector = embedder.embed_text(query)
-        image_vector = embedder.embed_image_from_url(image_url)
+        text_vector = await loop.run_in_executor(None, embedding.embed_text, query)
+        image_vector = await embedding.embed_image_from_url(image_url)
         es_query = build_hybrid_query(text_vector, query, image_vector, filters)
     elif query:
-        text_vector = embedder.embed_text(query)
+        text_vector = await loop.run_in_executor(None, embedding.embed_text, query)
         es_query = build_text_query(text_vector, query, filters)
     elif image_url:
-        image_vector = embedder.embed_image_from_url(image_url)
+        image_vector = await embedding.embed_image_from_url(image_url)
         es_query = build_image_query(image_vector, filters)
     else:
         return SearchResponse(total=0, results=[], aggregations=Aggregations())
 
     es_query["aggs"] = build_aggregations()
 
-    response = es.search(index=INDEX_NAME, body=es_query)
+    async with elastic_search_client() as es:
+        response = await es.search(index=INDEX_NAME, body=es_query)
+
     hits = response["hits"]["hits"]
     aggs = response["aggregations"]
 
