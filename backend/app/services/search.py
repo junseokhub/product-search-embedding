@@ -9,7 +9,7 @@ from app.core.es_query import (
 )
 from app.core.es_mapping import INDEX_NAME
 from app.embedding.clip import embedding
-from app.schemas.search import SearchResponse, ProductResult, Aggregations
+from app.schemas.search import SearchResponse, ProductResult, Aggregations, EMPTY_RESPONSE
 
 
 def _parse_results(hits: list) -> list[ProductResult]:
@@ -41,25 +41,28 @@ def _parse_aggregations(aggs: dict) -> Aggregations:
         site_counts=site_counts
     )
 
+async def _embed_text(text: str) -> list[float]:
+    """텍스트 임베딩 (스레드풀에서 실행)"""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, embedding.embed_text, text)
 
 async def search_products(query: str | None, image_url: str | None, site: str | None, broadcast_date: str | None) -> SearchResponse:
-    """검색 타입에 따라 텍스트,이미지,hybrid 검색"""
-    es = elastic_search_client()
+    """검색 타입에 따라 텍스트, 이미지, hybrid 검색"""
+    if not query and not image_url:
+        return EMPTY_RESPONSE
+
     filters = build_filters(site, broadcast_date)
-    loop = asyncio.get_running_loop()
 
     if query and image_url:
-        text_vector = await loop.run_in_executor(None, embedding.embed_text, query)
+        text_vector = await _embed_text(query)
         image_vector = await embedding.embed_image_from_url(image_url)
         es_query = build_hybrid_query(text_vector, query, image_vector, filters)
     elif query:
-        text_vector = await loop.run_in_executor(None, embedding.embed_text, query)
+        text_vector = await _embed_text(query)
         es_query = build_text_query(text_vector, query, filters)
-    elif image_url:
+    else:
         image_vector = await embedding.embed_image_from_url(image_url)
         es_query = build_image_query(image_vector, filters)
-    else:
-        return SearchResponse(total=0, results=[], aggregations=Aggregations())
 
     es_query["aggs"] = build_aggregations()
 
