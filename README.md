@@ -26,6 +26,9 @@ CLIP_PRETRAINED=openai
   - valid_indices.npy
 
 용량이 괜찮을 듯 해서 git에 포함시켰습니다. (각 28MB, 총 56MB)
+-> 변경 요구사항 재확인 후 50MB이상이어서 구글드라이브로 대체합니다.
+-> /backend/data/embeddings/..
+-> https://drive.google.com/drive/folders/1Xs354rrW-_aLgb4KZ1rUw7s1ixy20evq?usp=sharing
 
 ### 실행
 

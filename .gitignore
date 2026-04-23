@@ -11,3 +11,6 @@ backend/.env
 .DS_Store
 
 backend/data/*.csv
+
+*.npy
+embeddings/
