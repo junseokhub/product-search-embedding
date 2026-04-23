@@ -1,5 +1,6 @@
 import asyncio
-from app.core.elasticsearch import elastic_search_client
+
+from elasticsearch import AsyncElasticsearch
 from app.core.es_query import (
     build_filters,
     build_text_query,
@@ -46,7 +47,9 @@ async def _embed_text(text: str) -> list[float]:
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, embedding.embed_text, text)
 
-async def search_products(query: str | None, image_url: str | None, site: str | None, broadcast_date: str | None) -> SearchResponse:
+async def search_products(
+        es: AsyncElasticsearch,
+        query: str | None, image_url: str | None, site: str | None, broadcast_date: str | None) -> SearchResponse:
     """검색 타입에 따라 텍스트, 이미지, hybrid 검색"""
     if not query and not image_url:
         return EMPTY_RESPONSE
@@ -66,8 +69,7 @@ async def search_products(query: str | None, image_url: str | None, site: str | 
 
     es_query["aggs"] = build_aggregations()
 
-    async with elastic_search_client() as es:
-        response = await es.search(index=INDEX_NAME, body=es_query)
+    response = await es.search(index=INDEX_NAME, body=es_query)
 
     hits = response["hits"]["hits"]
     aggs = response["aggregations"]

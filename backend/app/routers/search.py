@@ -2,11 +2,13 @@ import time
 import hashlib
 from fastapi import APIRouter, Query
 from loguru import logger
-
+from elasticsearch import AsyncElasticsearch
 from app.core.redis import get_cache, set_cache
 from app.core.circuit_breaker import circuit_breaker
 from app.schemas.search import SearchResponse, EMPTY_RESPONSE
 from app.services.search import search_products
+from fastapi import Depends
+from app.core.elasticsearch import elastic_search_client
 
 router = APIRouter()
 
@@ -17,8 +19,9 @@ def make_cache_key(query, image_url, site, broadcast_date) -> str:
 
 @router.get("/search", response_model=SearchResponse)
 async def search(
+        es: AsyncElasticsearch = Depends(elastic_search_client),
         query: str | None = Query(None), image_url: str | None = Query(None),
-        site: str | None = Query(None), broadcast_date: str | None = Query(None)
+        site: str | None = Query(None), broadcast_date: str | None = Query(None),
 ):
     start_time = time.time()
     cache_key = make_cache_key(query, image_url, site, broadcast_date)
@@ -33,7 +36,7 @@ async def search(
         return EMPTY_RESPONSE
 
     try:
-        result = await search_products(query, image_url, site, broadcast_date)
+        result = await search_products(es, query, image_url, site, broadcast_date)
         await set_cache(cache_key, result.model_dump())
         print(f"[검색 완료] 소요시간: {time.time() - start_time:.3f}s")
         return result

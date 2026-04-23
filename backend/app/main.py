@@ -8,11 +8,12 @@ from app.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("ES 클라이언트 생성")
     app.state.es = AsyncElasticsearch(settings.ELASTICSEARCH_URL)
     yield
     await app.state.es.close()
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.include_router(router)
 
 @app.exception_handler(Exception)

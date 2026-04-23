@@ -4,8 +4,11 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+
+from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
 
+from app.config import settings
 from app.core.elasticsearch import create_index, elastic_search_client
 
 logging.basicConfig(level=logging.INFO)
@@ -17,8 +20,7 @@ BATCH_SIZE = 100
 async def index_products(csv_path: Path, embeddings_dir: Path):
     # 임베딩 파일 읽기 및 ES 색인
     await create_index()
-    es = elastic_search_client()
-    async with elastic_search_client() as es:
+    async with AsyncElasticsearch(settings.ELASTICSEARCH_URL) as es:
         df = pd.read_csv(csv_path)
 
         # Path 객체를 활용해 경로 결합
