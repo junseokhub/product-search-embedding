@@ -30,6 +30,8 @@ CLIP_PRETRAINED=openai
 -> /backend/data/embeddings/..
 -> https://drive.google.com/drive/folders/1Xs354rrW-_aLgb4KZ1rUw7s1ixy20evq?usp=sharing
 
+기존 csv파일은 /backend/data 경로에 넣으시면 됩니다.
+
 ### 실행
 
 ```bash
