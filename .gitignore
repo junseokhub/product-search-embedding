@@ -14,3 +14,7 @@ backend/data/*.csv
 
 *.npy
 embeddings/
+
+.gradle
+build
+out
