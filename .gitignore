@@ -17,4 +17,5 @@ embeddings/
 
 .gradle
 build
-out
+ou
+/backend/vevn_onnx
